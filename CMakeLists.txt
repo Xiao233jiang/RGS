@@ -25,35 +25,51 @@ link_directories(
 set(
     HEADERS 
 
-    ${CMAKE_SOURCE_DIR}/src/Bace.h
     ${CMAKE_SOURCE_DIR}/src/Application.h
-    ${CMAKE_SOURCE_DIR}/src/Window.h
-    ${CMAKE_SOURCE_DIR}/src/WindowsWindow.h
-    ${CMAKE_SOURCE_DIR}/src/InputCodes.h
-    ${CMAKE_SOURCE_DIR}/src/Maths.h
-    ${CMAKE_SOURCE_DIR}/src/Framebuffer.h
+
+    ${CMAKE_SOURCE_DIR}/src/RGS/Base.h
+    ${CMAKE_SOURCE_DIR}/src/RGS/Window.h
+    ${CMAKE_SOURCE_DIR}/src/RGS/WindowsWindow.h
+    ${CMAKE_SOURCE_DIR}/src/RGS/InputCodes.h
+    ${CMAKE_SOURCE_DIR}/src/RGS/Maths.h
+    ${CMAKE_SOURCE_DIR}/src/RGS/Framebuffer.h
+    ${CMAKE_SOURCE_DIR}/src/RGS/Renderer.h
+
+    ${CMAKE_SOURCE_DIR}/src/RGS/Shaders/ShaderBase.h
+    ${CMAKE_SOURCE_DIR}/src/RGS/Shaders/BlinnShader.h
 )
 
 set(
     SOURCES
     
-    ${CMAKE_SOURCE_DIR}/Src/Application.cpp
-    ${CMAKE_SOURCE_DIR}/Src/Window.cpp
-    ${CMAKE_SOURCE_DIR}/Src/WindowsWindow.cpp
-    ${CMAKE_SOURCE_DIR}/Src/Maths.cpp
-    ${CMAKE_SOURCE_DIR}/Src/Framebuffer.cpp
+    ${CMAKE_SOURCE_DIR}/src/Application.cpp
+
+    ${CMAKE_SOURCE_DIR}/src/RGS/Window.cpp
+    ${CMAKE_SOURCE_DIR}/src/RGS/WindowsWindow.cpp
+    ${CMAKE_SOURCE_DIR}/src/RGS/Maths.cpp
+    ${CMAKE_SOURCE_DIR}/src/RGS/Framebuffer.cpp
+
+    ${CMAKE_SOURCE_DIR}/src/RGS/Shaders/BlinnShader.cpp
 )
+
+set(INCULDE_PATH 
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+set(TARGET RGS)
 
 #set(EXECUTABLE_OUTPUT_PATH output) #设置可执行文件的生成路径
 
 add_executable(
-            RGS
+            ${TARGET}
 
             main.cpp
 
             ${HEADERS}
             ${SOURCES} 
 )
+
+target_include_directories(${TARGET} PRIVATE ${INCLUDE_PATH})
 
 # target_link_libraries(
 #             RGS 

@@ -54,7 +54,7 @@ void WindowsWindow::Unregister()
 WindowsWindow::WindowsWindow(const std::string title, const int width, const int height)
     : Window(title, width, height)
 {
-    ASSERT((s_Inited), "未初始化");
+    ASSERT((s_Inited), "未初始化, 尝试 RGS::WindowsWindow::Init()");
 
     DWORD style = WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;     // 窗口样式, 带标题栏, 系统菜单, 最小化按钮
     RECT rect;              // 窗口大小

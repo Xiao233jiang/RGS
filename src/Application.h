@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "Window.h"
+#include "RGS/Window.h"
 
 namespace RGS {
 

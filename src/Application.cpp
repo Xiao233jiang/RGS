@@ -2,8 +2,11 @@
 #include <string>
 
 #include "Application.h"
-#include "Framebuffer.h"
-#include "Window.h"
+#include "RGS/Framebuffer.h"
+#include "RGS/Window.h"
+#include "RGS/Maths.h"
+#include "RGS/Shaders/BlinnShader.h"
+#include "RGS/Renderer.h"
 using namespace RGS;
 
 Application::Application(const std::string name, const int width, const int height)
@@ -44,11 +47,33 @@ void Application::Run()
 void Application::OnUpdate()
 {
     if (m_Window->GetKey(RGS_KEY_0) == RGS_PRESS)
-        std::cout << "0 被按下" << std::endl;
+        std::cout << "0 按下" << std::endl;
+    if (m_Window->GetKey(RGS_KEY_B) == RGS_PRESS)
+        std::cout << "B 按下" << std::endl;
     if (m_Window->GetKey(RGS_KEY_A) == RGS_PRESS)
-        std::cout << "A 被按下" << std::endl;
+        std::cout << "A 按下" << std::endl;
+    if (m_Window->GetKey(RGS_KEY_O) == RGS_PRESS)
+        std::cout << "O 按下" << std::endl;
+
+    if (m_Window->GetKey(RGS_KEY_R) == RGS_PRESS)
+        std::cout << "R 按下" << std::endl;
+    if (m_Window->GetKey(RGS_KEY_G) == RGS_PRESS)
+        std::cout << "G 按下" << std::endl;
+    if (m_Window->GetKey(RGS_KEY_S) == RGS_PRESS)
+        std::cout << "S 按下" << std::endl;
 
     Framebuffer framebuffer(m_Width, m_Height);
-    framebuffer.Clear( {0.5f, 0.2f, 0.01f} );
+    framebuffer.Clear( {0.0f, 0.01f, 0.5f} );
     m_Window->DrawFramebuffer(framebuffer);
+
+    Program program(BlinnVertexShader);
+    Triangle<BlinnVertex> tri;
+    tri[0].ModelPos = { -10.0f, 10.0f, -10.0f, 1.0f };
+    tri[1].ModelPos = { -10.0f, -10.0f, -10.0f, 1.0f };
+    tri[2].ModelPos = { 5.0f, -10.0f, -10.0f, 1.0f };
+    //tri[2].ModelPos = { 1.0f, 1.0f, -1.0f, 1.0f };
+    BlinnUniforms uniforms;
+    uniforms.MVP = Mat4Perspective(90.0f / 180.0f * PI, 1.0f, 1.0f, 10.0f);
+
+    Renderer::Draw(framebuffer, program, tri, uniforms);
 }
