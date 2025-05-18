@@ -27,13 +27,27 @@ struct Triangle
     Triangle() = default;   // 默认构造函数, default指定了编译器生成默认构造函数
 };
 
+enum class DepthFuncType 
+{
+    LESS,           // 小于
+    LEQUAL,         // 小于等于
+    ALWAYS,         // 总是
+};
 
 template<typename vertex_t, typename uniforms_t, typename varyings_t>
 struct Program 
 {
+    bool EnableDepthTest = true;      // 是否启用深度测试
+    bool EnableWriteDepth = true;     // 是否启用深度写入
+    bool EnableBlend = true;          // 是否启用混合
+    bool EnableDoubleSided = false;   // 是否启用双面渲染
+
+    DepthFuncType DepFunc = DepthFuncType::LESS;        // 深度测试函数类型
+
     using vertex_shader_t = void (*)(varyings_t&, const vertex_t&, const uniforms_t&);
     vertex_shader_t VertexShader;   // 顶点着色器
 
+    // discard 为true表示当前判断片段被丢弃 
     using fragment_shader_t = Vec4(*)(bool& discard, const varyings_t&, const uniforms_t&);
     fragment_shader_t FragmentShader;   // 片段着色器
 
@@ -81,6 +95,14 @@ private:
      * @param weights 三角形比例
     */
     static bool IsInsideTriangle(float (&weights)[3]);
+    /**
+     * @brief 判断是否是背面
+    */
+    static bool IsBackFacing(const Vec4& a, const Vec4& b, const Vec4& c);
+    /**
+     * @brief 判断点是否在平面内
+    */
+    static bool PassDepthTest(const float writeDepth, const float fDepth, const DepthFuncType depthFunc);
 
     /**
      * @brief 计算线段与平面的交点比例
@@ -136,7 +158,7 @@ private:
                         varyings[2].ClipPos * weights[2];
         out.NdcPos = out.ClipPos / out.ClipPos.W;
         out.NdcPos.W = 1.0f / out.ClipPos.W;
-        out.FragPos.X = ((out.NdcPos.X + 1.0f) * 0.5f * 400);
+        out.FragPos.X = ((out.NdcPos.X + 1.0f) * 0.5f * 600);
         out.FragPos.Y = ((out.NdcPos.Y + 1.0f) * 0.5f * 300);
         out.FragPos.Z = (out.NdcPos.Z + 1.0f) * 0.5f;
         out.FragPos.W = out.NdcPos.W;
@@ -294,7 +316,25 @@ private:
         color.Z = Clamp(color.Z, 0.0f, 1.0f);
         color.W = Clamp(color.W, 0.0f, 1.0f);
 
-        framebuffer.SetColor(x, y, color);
+        /* Blend (混合) */ /* 用于透明物体 */
+        if (program.EnableBlend)    // 如果启用混合
+        {
+            Vec3 dstColor = framebuffer.GetColor(x, y);     // 读取当前像素颜色
+            Vec3 srcColor = color;      // 读取片段颜色
+            float alpha = color.W;      // 读取片段透明度
+            color = { Lerp(dstColor, srcColor, alpha), 1.0f };  // 计算混合颜色
+            framebuffer.SetColor(x, y, color);
+        }
+        else 
+        {
+            framebuffer.SetColor(x, y, color);
+        } 
+
+        if (program.EnableWriteDepth)   // 如果启用深度写入
+        {
+            float depth = varyings.FragPos.Z;
+            framebuffer.SetDepth(x, y, depth);
+        }
     }
 
     /**
@@ -310,6 +350,17 @@ private:
                                 const varyings_t(&varyings)[3],
                                 const uniforms_t& uniforms)
     {
+        /* Back Face Culling(背向剔除) */
+        if (!program.EnableDoubleSided)     // 如果没有开启双面渲染
+        {
+            bool isBackFacing = false;
+            isBackFacing = IsBackFacing(varyings[0].NdcPos, varyings[1].NdcPos, varyings[2].NdcPos);
+            if (isBackFacing)
+            {
+                return;
+            }
+        }
+
         int width = framebuffer.GetWidth();
         int height = framebuffer.GetHeight();
         /* Bounding Box Setup */
@@ -334,6 +385,18 @@ private:
 
                 varyings_t pixVaryings;
                 LerpVaryings(pixVaryings, varyings, weights, width, height);
+
+                /* Early Depth Test (深度测试) */
+                if (program.EnableDepthTest)
+                {
+                    float depth = pixVaryings.FragPos.Z;
+                    float fDepth = framebuffer.GetDepth(x, y);
+                    DepthFuncType depthFunc = program.DepFunc;
+                    if (!PassDepthTest(depth, fDepth, depthFunc))
+                    {
+                        continue;
+                    }
+                }
 
                 /* Pixel Processing */
                 ProcessPixel(framebuffer, x, y, program, pixVaryings, uniforms);
