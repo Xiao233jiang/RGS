@@ -34,8 +34,12 @@ struct Program
     using vertex_shader_t = void (*)(varyings_t&, const vertex_t&, const uniforms_t&);
     vertex_shader_t VertexShader;   // 顶点着色器
 
-    Program(const vertex_shader_t vertexShader)
-        : VertexShader(vertexShader)
+    using fragment_shader_t = Vec4(*)(bool& discard, const varyings_t&, const uniforms_t&);
+    fragment_shader_t FragmentShader;   // 片段着色器
+
+    Program(const vertex_shader_t vertexShader, const fragment_shader_t fragmentShader)
+        : VertexShader(vertexShader),
+        FragmentShader(fragmentShader)
     {}
 };
 
@@ -46,8 +50,10 @@ private:
     static constexpr int RGS_MAX_VARYINGS = 9;      // 最大插值变量数目
 
 private:
-    enum class Plane 
+    enum class Plane        
     {
+        // 定义正方向和负方向的常量
+        // POSITIVE 表示正方向
         POSITIVE_W,
         POSITIVE_X,
         NEGATIVE_X,
@@ -56,6 +62,44 @@ private:
         POSITIVE_Z,
         NEGATIVE_Z,
     };
+
+    struct BoundingBox { int MinX, MaxX, MinY, MaxY; };   // 视锥体
+
+    /**
+     * @brief 判断点是否在视锥体内
+     * @param clipPos 裁剪空间坐标
+    */
+    static bool IsVertexVisible(const Vec4& clipPos);
+    /**
+     * @brief 判断点是否在平面内
+     * @param clipPos 裁剪空间坐标
+     * @param plane 平面
+    */
+    static bool IsInsidePlane(const Vec4& clipPos, const Plane plane);
+    /**
+     * @brief 判断点是否在三角形内
+     * @param weights 三角形比例
+    */
+    static bool IsInsideTriangle(float (&weights)[3]);
+
+    /**
+     * @brief 计算线段与平面的交点比例
+     * @param prev 前一点
+     * @param curr 当前点
+     * @param plane 平面
+    */
+    static float GetIntersectRatio(const Vec4& prev, const Vec4& curr, const Plane plane);
+    /**
+     * @brief 计算裁剪空间坐标
+     * @param fragCoords 片段坐标
+     * @param width 屏幕宽度
+     * @param height 屏幕高度
+    */
+    static BoundingBox GetBoundingBox(const Vec4(&fragCoords)[3], const int width, const int height);
+    /**
+     * @brief 
+    */
+    static void CalculateWeights(float (&screenWeights)[3], float(&weights)[3], const Vec4(&fragCoords)[3], const Vec2& screenPoint);
 
     /**
      * @brief 计算平面方程的交点
@@ -77,74 +121,39 @@ private:
             outFloat[i] = Lerp(startFloat[i], endFloat[i], ratio);
         }
     }
+    /**
+     * @brief 计算三角形的插值变量
+    */
+    template <typename varyings_t>
+    static void LerpVaryings(varyings_t& out, 
+                                const varyings_t(&varyings)[3], 
+                                const float(&weights)[3], 
+                                const int width, 
+                                const int height)
+    {
+        out.ClipPos = varyings[0].ClipPos * weights[0] + 
+                        varyings[1].ClipPos * weights[1] + 
+                        varyings[2].ClipPos * weights[2];
+        out.NdcPos = out.ClipPos / out.ClipPos.W;
+        out.NdcPos.W = 1.0f / out.ClipPos.W;
+        out.FragPos.X = ((out.NdcPos.X + 1.0f) * 0.5f * 400);
+        out.FragPos.Y = ((out.NdcPos.Y + 1.0f) * 0.5f * 300);
+        out.FragPos.Z = (out.NdcPos.Z + 1.0f) * 0.5f;
+        out.FragPos.W = out.NdcPos.W;
 
-    /**
-     * @brief 判断点是否在视锥体内
-     * @param clipPos 裁剪空间坐标
-    */
-    static bool IsVertexVisible(const Vec4& clipPos)
-    {
-        return (std::fabs(clipPos.X) <= clipPos.W
-            && std::fabs(clipPos.Y) <= clipPos.W
-            && std::fabs(clipPos.Z) <= clipPos.W );
-    }
-    /**
-     * @brief 判断点是否在平面内
-     * @param clipPos 裁剪空间坐标
-     * @param plane 平面
-    */
-    static bool IsInsidePlane(const Vec4& clipPos, const Plane plane)
-    {
-        switch (plane) 
+        constexpr uint32_t floatOffset = sizeof(Vec4) * 3 / sizeof(float);
+        constexpr uint32_t floatNum = sizeof(varyings_t) / sizeof(float);
+        float* v0 = (float*)&varyings[0];
+        float* v1 = (float*)&varyings[1];
+        float* v2 = (float*)&varyings[2];
+        float* outFloat = (float*)&out;
+
+        for (int i = floatOffset; i < (int)floatNum; i++)
         {
-            case Plane::POSITIVE_W:
-                return clipPos.W >= 0.0f;
-            case Plane::POSITIVE_X:
-                return clipPos.X <= +clipPos.W;
-            case Plane::NEGATIVE_X:
-                return clipPos.X >= -clipPos.W;
-            case Plane::POSITIVE_Y:
-                return clipPos.Y <= +clipPos.W;
-            case Plane::NEGATIVE_Y:
-                return clipPos.Y >= -clipPos.W;
-            case Plane::POSITIVE_Z:
-                return clipPos.Z <= +clipPos.W;
-            case Plane::NEGATIVE_Z:
-                return clipPos.Z >= -clipPos.W;
-            default:
-                ASSERT(false);
-                return false;
+            outFloat[i] = v0[i] * weights[0] + v1[i] * weights[1] + v2[i] * weights[2];
         }
     }
-    /**
-     * @brief 计算线段与平面的交点比例
-     * @param prev 前一点
-     * @param curr 当前点
-     * @param plane 平面
-    */
-    static float GetIntersectRatio(const Vec4& prev, const Vec4& curr, const Plane plane)
-    {
-        switch (plane) 
-        {
-            case Plane::POSITIVE_W:
-                return (prev.W - 0.0f) / (prev.W - curr.W);
-            case Plane::POSITIVE_X:
-                return (prev.W - prev.X) / ((prev.W - prev.X) - (curr.W - curr.X));
-            case Plane::NEGATIVE_X:
-                return (prev.W + prev.X) / ((prev.W + prev.X) - (curr.W + curr.X));
-            case Plane::POSITIVE_Y:
-                return (prev.W - prev.Y) / ((prev.W - prev.Y) - (curr.W - curr.Y));
-            case Plane::NEGATIVE_Y:
-                return (prev.W + prev.Y) / ((prev.W + prev.Y) - (curr.W + curr.Y));
-            case Plane::POSITIVE_Z:
-                return (prev.W - prev.Z) / ((prev.W - prev.Z) - (curr.W - curr.Z));
-            case Plane::NEGATIVE_Z:
-                return (prev.W + prev.Z) / ((prev.W + prev.Z) - (curr.W + curr.Z));
-            default:
-                ASSERT(false);
-                return 0.0f;
-        }
-    }
+
     /**
      * @brief 裁剪三角形
      * @param outVaryings 输出插值变量
@@ -152,7 +161,7 @@ private:
      * @param plane 裁剪平面
      * @param inVertexNum 输入顶点数目
     */
-    template<typename varyings_t>
+    template <typename varyings_t>
     static int ClipAgainstPlane(varyings_t(&outVaryings)[RGS_MAX_VARYINGS],
                                 const varyings_t(&inVaryings)[RGS_MAX_VARYINGS],
                                 const Plane plane,
@@ -221,6 +230,117 @@ private:
         return vertexNum;
     }
 
+    /**
+     * @brief 计算NDC坐标
+     * @param varyings 输入插值变量
+     * @param vertexNum 输入顶点数目
+    */
+    template<typename varyings_t>
+    static void CaculateNdcPos(varyings_t(&varyings)[RGS_MAX_VARYINGS], const int vertexNum)
+    {
+        for (int i = 0; i < vertexNum; i++)
+        {
+            float w = varyings[i].ClipPos.W;
+            varyings[i].NdcPos = varyings[i].ClipPos / w;
+            varyings[i].NdcPos.W = 1.0f / w;
+        }
+    }
+    /**
+     * @brief 计算片段位置
+     * @param varyings 输入插值变量
+     * @param vertexNum 输入顶点数目
+     * @param width 屏幕宽度
+     * @param height 屏幕高度
+    */
+    template<typename varyings_t>
+    static void CaculateFragPos(varyings_t(&varyings)[RGS_MAX_VARYINGS],
+                                const int vertexNum,
+                                const float width,
+                                const float height)
+    {
+        for (int i = 0; i < vertexNum; i++)
+        {
+            // 将NDC坐标转换为屏幕坐标
+            float x = ((varyings[i].NdcPos.X + 1.0f) * 0.5f * width);       
+            float y = ((varyings[i].NdcPos.Y + 1.0f) * 0.5f * height);
+            float z = (varyings[i].NdcPos.Z + 1.0f) * 0.5f;
+            float w = varyings[i].NdcPos.W;
+
+            varyings[i].FragPos.X = x;
+            varyings[i].FragPos.Y = y;
+            varyings[i].FragPos.Z = z;
+            varyings[i].FragPos.W = w;
+        }
+    }
+
+    template <typename vertex_t, typename uniforms_t, typename varyings_t>
+    static void ProcessPixel(Framebuffer& framebuffer,
+                                const int x,
+                                const int y,
+                                const Program<vertex_t, uniforms_t, varyings_t>& program,
+                                const varyings_t& varyings,
+                                const uniforms_t& uniforms)
+    {
+        /* Pixel Shading */
+        bool discard = false;
+        Vec4 color{ 0.0f, 0.0f, 0.0f, 0.0f };
+        color = program.FragmentShader(discard, varyings, uniforms);
+        if (discard)
+        {
+            return;
+        }
+        color.X = Clamp(color.X, 0.0f, 1.0f);
+        color.Y = Clamp(color.Y, 0.0f, 1.0f);
+        color.Z = Clamp(color.Z, 0.0f, 1.0f);
+        color.W = Clamp(color.W, 0.0f, 1.0f);
+
+        framebuffer.SetColor(x, y, color);
+    }
+
+    /**
+     * @brief 绘制三角形
+     * @param framebuffer 帧缓存
+     * @param program 着色器程序
+     * @param varyings 输入插值变量
+     * @param uniforms 统一变量
+    */
+    template<typename vertex_t, typename uniforms_t, typename varyings_t>
+    static void RasterizeTriangle(Framebuffer& framebuffer,
+                                const Program<vertex_t, uniforms_t, varyings_t>& program,
+                                const varyings_t(&varyings)[3],
+                                const uniforms_t& uniforms)
+    {
+        int width = framebuffer.GetWidth();
+        int height = framebuffer.GetHeight();
+        /* Bounding Box Setup */
+        Vec4 fragCoords[3];
+        fragCoords[0] = varyings[0].FragPos;
+        fragCoords[1] = varyings[1].FragPos;
+        fragCoords[2] = varyings[2].FragPos;
+        BoundingBox bBox = GetBoundingBox(fragCoords, framebuffer.GetWidth(), framebuffer.GetHeight());
+
+        for (int y = bBox.MinY; y <= bBox.MaxY; y++)
+        {
+            for (int x = bBox.MinX; x <= bBox.MaxX; x++)
+            {
+                /* Varyings Setup */
+                float screenWeights[3];
+                float weights[3];
+                Vec2 screenPoint{ (float)x + 0.5f, (float)y + 0.5f };
+
+                CalculateWeights(screenWeights, weights, fragCoords, screenPoint);
+                if (!IsInsideTriangle(weights))
+                    continue;
+
+                varyings_t pixVaryings;
+                LerpVaryings(pixVaryings, varyings, weights, width, height);
+
+                /* Pixel Processing */
+                ProcessPixel(framebuffer, x, y, program, pixVaryings, uniforms);
+            }
+        }
+    }
+
 public:
     /**
      * @brief 绘制
@@ -247,6 +367,23 @@ public:
 
         /* Clipping */
         int vertexNum = Clip(varyings);
+
+        /* Screen Mapping */
+        CaculateNdcPos(varyings, vertexNum);
+        int fWidth = framebuffer.GetWidth();
+        int fHeight = framebuffer.GetHeight();
+        CaculateFragPos(varyings, vertexNum, (float)fWidth, (float)fHeight);
+
+        /* Triangle Assembly & Rasterization */
+        for (int i = 0; i < vertexNum - 2; i++)
+        {
+            varyings_t triVaryings[3];
+            triVaryings[0] = varyings[0];
+            triVaryings[1] = varyings[i + 1];
+            triVaryings[2] = varyings[i + 2];
+
+            RasterizeTriangle(framebuffer, program, triVaryings, uniforms);
+        }
     }
 };
 

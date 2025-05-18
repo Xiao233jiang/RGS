@@ -1,4 +1,5 @@
 build/
+msvc-build/
 .vscode/
 .cache/
 History/

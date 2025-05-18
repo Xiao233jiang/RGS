@@ -21,4 +21,9 @@ struct BlinnUniforms : public UniformsBase
 
 void BlinnVertexShader(BlinnVaryings& varyings, const BlinnVertex& vertex, const BlinnUniforms& uniforms);
 
+/**
+ * @brief Blinn片段着色器
+*/
+Vec4 BlinnFragmentShader(bool& discard, const BlinnVaryings& varyings, const BlinnUniforms& uniforms);
+
 }

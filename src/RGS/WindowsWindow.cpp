@@ -81,7 +81,7 @@ WindowsWindow::WindowsWindow(const std::string title, const int width, const int
 
     biHeader.biSize = sizeof(BITMAPINFOHEADER);     // 位图信息头大小
     biHeader.biWidth = ((long)m_Width);             // 位图宽度
-    biHeader.biHeight = ((long)m_Height);           // 位图高度
+    biHeader.biHeight = -((long)m_Height);           // 位图高度
     biHeader.biPlanes = 1;                          // 颜色平面数
     biHeader.biBitCount = 24;                       // 位深度
     biHeader.biCompression = BI_RGB;                // 压缩类型

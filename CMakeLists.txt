@@ -48,6 +48,7 @@ set(
     ${CMAKE_SOURCE_DIR}/src/RGS/WindowsWindow.cpp
     ${CMAKE_SOURCE_DIR}/src/RGS/Maths.cpp
     ${CMAKE_SOURCE_DIR}/src/RGS/Framebuffer.cpp
+    ${CMAKE_SOURCE_DIR}/src/RGS/Renderer.cpp
 
     ${CMAKE_SOURCE_DIR}/src/RGS/Shaders/BlinnShader.cpp
 )

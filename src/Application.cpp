@@ -63,17 +63,17 @@ void Application::OnUpdate()
         std::cout << "S 按下" << std::endl;
 
     Framebuffer framebuffer(m_Width, m_Height);
-    framebuffer.Clear( {0.0f, 0.01f, 0.5f} );
-    m_Window->DrawFramebuffer(framebuffer);
+    framebuffer.Clear( {0.0f, 0.0f, 0.0f} );       // 用 Vec3 定义颜色清屏
 
-    Program program(BlinnVertexShader);
+    Program program(BlinnVertexShader, BlinnFragmentShader);
     Triangle<BlinnVertex> tri;
-    tri[0].ModelPos = { -10.0f, 10.0f, -10.0f, 1.0f };
+    tri[0].ModelPos = { 0.0f, 0.0f, -8.0f, 1.0f };
     tri[1].ModelPos = { -10.0f, -10.0f, -10.0f, 1.0f };
-    tri[2].ModelPos = { 5.0f, -10.0f, -10.0f, 1.0f };
-    //tri[2].ModelPos = { 1.0f, 1.0f, -1.0f, 1.0f };
+    tri[2].ModelPos = { 30.0f, -10.0f, -10.0f, 1.0f };
     BlinnUniforms uniforms;
     uniforms.MVP = Mat4Perspective(90.0f / 180.0f * PI, 1.0f, 1.0f, 10.0f);
 
     Renderer::Draw(framebuffer, program, tri, uniforms);
+
+    m_Window->DrawFramebuffer(framebuffer);
 }

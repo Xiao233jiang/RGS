@@ -1,25 +1,32 @@
 #pragma once
-
-#include <string>
 #include "RGS/Maths.h"
+#include <iostream>
+#include <string>
 
 namespace RGS {
 
-struct VertexBase
-{
-    Vec4 ModelPos = { 0, 0, 0, 1 };     // 模型空间坐标
-    operator const std::string() const { return "ModelPos: " + (std::string)ModelPos; }     // 输出模型空间坐标
-};
+    struct VertexBase
+    {
+        Vec4 ModelPos = { 0, 0, 0, 1 };
+        operator const std::string() const { return "ModelPos: " + (std::string)ModelPos; }
 
-struct VaryingsBase
-{
-    Vec4 ClipPos = { 0, 0, 0, 1 };      // 裁剪空间坐标
-};
+        friend std::ostream& operator<<(std::ostream& os, const VertexBase& vb) 
+        {
+            return os << (std::string)vb;
+        }
+    };
 
-struct UniformsBase
-{
-    Mat4 MVP;       // 变换矩阵
-    operator const std::string() const { return (std::string)MVP; }     // 输出变换矩阵
-};
+    struct VaryingsBase
+    {
+        Vec4 ClipPos = { 0.0f, 0.0f, 0.0f, 1.0f };
+        Vec4 NdcPos  = { 0.0f, 0.0f, 0.0f, 1.0f };
+        Vec4 FragPos = { 0.0f, 0.0f, 0.0f, 1.0f };
+    };
+ 
+    struct UniformsBase
+    {
+        Mat4 MVP;
+        operator const std::string() const { return (std::string)MVP; }
+    };
 
 }
