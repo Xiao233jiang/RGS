@@ -25,6 +25,16 @@ struct Triangle
     const vertex_t& operator[](size_t i) const { return Vertex[i]; } 
 
     Triangle() = default;   // 默认构造函数, default指定了编译器生成默认构造函数
+
+    friend std::ostream& operator<<(std::ostream& os, const Triangle<vertex_t>& triangle) 
+    {
+        os << "Triangle: {\n";
+        for (int i = 0; i < 3; ++i) {
+            os << "  Vertex[" << i << "]: " << triangle.Vertex[i] << "\n";
+        }
+        os << "}";
+        return os;
+    }
 };
 
 enum class DepthFuncType 
@@ -39,7 +49,7 @@ struct Program
 {
     bool EnableDepthTest = true;      // 是否启用深度测试
     bool EnableWriteDepth = true;     // 是否启用深度写入
-    bool EnableBlend = true;          // 是否启用混合
+    bool EnableBlend = false;          // 是否启用混合
     bool EnableDoubleSided = false;   // 是否启用双面渲染
 
     DepthFuncType DepFunc = DepthFuncType::LESS;        // 深度测试函数类型
@@ -368,7 +378,7 @@ private:
         fragCoords[0] = varyings[0].FragPos;
         fragCoords[1] = varyings[1].FragPos;
         fragCoords[2] = varyings[2].FragPos;
-        BoundingBox bBox = GetBoundingBox(fragCoords, framebuffer.GetWidth(), framebuffer.GetHeight());
+        BoundingBox bBox = GetBoundingBox(fragCoords, width, height);
 
         for (int y = bBox.MinY; y <= bBox.MaxY; y++)
         {

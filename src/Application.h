@@ -2,8 +2,11 @@
 
 #include <chrono>
 #include <string>
+#include <vector>
 
 #include "RGS/Maths.h"
+#include "RGS/Renderer.h"
+#include "RGS/Shaders/BlinnShader.h"
 #include "RGS/Window.h"
 
 namespace RGS {
@@ -14,7 +17,7 @@ struct Camera
     Vec4 Right = { 1.0f, 0.0f, 0.0f, 0.0f };        // 相机右边方向(向量)
     Vec4 Up = { 0.0f, 1.0f, 0.0f, 0.0f };           // 相机上方向(向量)
     Vec4 Dir = { 0.0f, 0.0f, -1.0f, 0.0f };         // 相机视线方向(向量)
-    float Aspect = 4.0f / 4.0f;                               // 宽高比
+    float Aspect = 4.0f / 3.0f;                               // 宽高比
     float Fovy = 45.0f;                                        // 视角
 };
 
@@ -33,6 +36,8 @@ private:
     void OnCameraUpdate(float time);    
     void OnUpdate(float time);
 
+    void LoadMesh(const char* filename);
+
 private:
     std::string m_Name;
     int m_Width;
@@ -41,6 +46,10 @@ private:
 
     Window* m_Window;     // 
     Camera m_Camera;      // 相机
+
+    std::vector<Triangle<BlinnVertex>> m_Mesh;      // 网格
+
+    BlinnUniforms m_Uniforms;       // 着色器参数
 };
 
 }
