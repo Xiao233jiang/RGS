@@ -8,6 +8,7 @@
 #include "RGS/Renderer.h"
 #include "RGS/Shaders/BlinnShader.h"
 #include "RGS/Window.h"
+#include "Imgui/ImGuiWindow.h"
 
 namespace RGS {
 
@@ -46,6 +47,8 @@ private:
 
     Window* m_Window;     // 
     Camera m_Camera;      // 相机
+
+    ImGuiWindow* m_ImGuiWindow;     // ImGui窗口
 
     std::vector<Triangle<BlinnVertex>> m_Mesh;      // 网格
 

@@ -5,8 +5,10 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <imgui.h>
 
 #include "Application.h"
+#include "ImGui/ImGuiWindow.h"
 #include "RGS/Base.h"
 #include "RGS/Framebuffer.h"
 #include "RGS/InputCodes.h"
@@ -34,6 +36,10 @@ void Application::Init()
 {
     Window::Init();
     m_Window = Window::Create(m_Name, m_Width, m_Height);
+
+    // ImGui
+    m_ImGuiWindow = &ImGuiWindow::Instance();
+
     m_LastFrameTime = std::chrono::steady_clock::now();
 
     LoadMesh("assets/box.obj");
@@ -178,6 +184,13 @@ void Application::OnCameraUpdate(float time)
 void Application::OnUpdate(float time)
 {
     OnCameraUpdate(time);
+
+    // imgui 界面
+    m_ImGuiWindow->Begin();
+    {
+        ImGui::ShowDemoWindow(nullptr);
+    }
+    m_ImGuiWindow->End();
 
     Framebuffer framebuffer(m_Width, m_Height);
     Program program(BlinnVertexShader, BlinnFragmentShader);

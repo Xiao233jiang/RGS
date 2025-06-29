@@ -16,6 +16,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/src/
 
     ${CMAKE_SOURCE_DIR}/3rdlib/
+    ${CMAKE_SOURCE_DIR}/3rdlib/imgui/
 )
 
 link_directories(
@@ -40,6 +41,8 @@ set(
 
     ${CMAKE_SOURCE_DIR}/src/RGS/Shaders/ShaderBase.h
     ${CMAKE_SOURCE_DIR}/src/RGS/Shaders/BlinnShader.h
+
+    ${CMAKE_SOURCE_DIR}/src/ImGui/ImGuiWindow.h
 )
 
 set(
@@ -54,9 +57,12 @@ set(
     ${CMAKE_SOURCE_DIR}/src/RGS/Renderer.cpp
     ${CMAKE_SOURCE_DIR}/src/RGS/Texture.cpp
 
-    ${CMAKE_SOURCE_DIR}/src/RGS/stb/stb_image.cpp
-
     ${CMAKE_SOURCE_DIR}/src/RGS/Shaders/BlinnShader.cpp
+    
+    ${CMAKE_SOURCE_DIR}/src/stb/stb_image.cpp
+
+    ${CMAKE_SOURCE_DIR}/src/ImGui/imgui_stdlib.cpp
+    ${CMAKE_SOURCE_DIR}/src/ImGui/ImGuiWindow.cpp
 )
 
 set(INCULDE_PATH 
@@ -65,7 +71,14 @@ set(INCULDE_PATH
 
 set(TARGET RGS)
 
-#set(EXECUTABLE_OUTPUT_PATH output) #设置可执行文件的生成路径
+# =========================================
+# ================= ImGui =================
+# =========================================
+file(GLOB IMGUI_SOURCES ${CMAKE_SOURCE_DIR}/3rdlib/imgui/*.cpp)
+set(IMGUI_SOURCES ${IMGUI_SOURCES}
+    "3rdlib/imgui/backends/imgui_impl_win32.cpp"
+    "3rdlib/imgui/backends/imgui_impl_dx11.cpp")
+set(IMGUI_LINK_LIBRARY "d3d11.lib" "d3dcompiler.lib" "dxgi.lib" "dwmapi.lib")
 
 add_executable(
             ${TARGET}
@@ -74,17 +87,18 @@ add_executable(
 
             ${HEADERS}
             ${SOURCES} 
+
+            ${IMGUI_SOURCES}
 )
 
 target_include_directories(${TARGET} PRIVATE ${INCLUDE_PATH})
 
-# target_link_libraries(
-#             RGS 
-#             PRIVATE 
+target_link_libraries(
+            ${TARGET} 
+            PRIVATE 
             
-#             libglfw3.a
-#             libglad.a
-# )
+            ${IMGUI_LINK_LIBRARY}
+)
 
 
 set(ASSETS_SRC "${CMAKE_SOURCE_DIR}/assets")                # 设置源资源目录
