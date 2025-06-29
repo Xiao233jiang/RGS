@@ -1,24 +1,37 @@
-﻿# GhostEscape 项目说明
+﻿# RGS 渲染器项目说明
 
-本项目是一个基于 SDL3 和 GLM 的幽灵逃生小游戏，跟随 B 站 up 主 [ZiyuGameDev](https://space.bilibili.com/34930837) 的教程实现。  
-参考资料：
-- [B 站视频教程](https://www.bilibili.com/video/BV1jf9XYQEhW?spm_id_from=333.788.videopod.sections&vd_source=a8a554eb57c061d8bc9b0b077e956f85)
-- [原项目 GitHub](https://github.com/WispSnow/GhostEscape)
+本项目是一个基于 C++17 的软件光栅化渲染器，支持基础的 3D 图形渲染流程，包括模型加载、相机控制、光照、纹理映射、深度测试、背面剔除等功能。项目采用自定义的渲染管线实现，主要用于学习和演示现代图形学基础原理。
+
+---
+
+## 主要特性
+
+- ** C++17 实现**，核心无平台依赖，窗口与输入基于 Win32 封装
+- **自定义 Framebuffer**，支持颜色与深度缓冲
+- **基础渲染管线**：顶点着色、裁剪、投影、光栅化、片元着色
+- **Blinn-Phong 光照模型**，支持环境光、漫反射、镜面反射
+- **纹理采样**，支持加载图片并进行采样
+- **OBJ 网格加载**（可扩展）
+- **ImGui 调试界面**，便于参数调试和实时观察
+- **模块化设计**，便于扩展和学习
 
 ---
 
 ## 目录结构
+
 ```
-GhostEscape-Xiaojiang/ 
-├── 3rdlib/ # 第三方库（SDL3、GLM等） 
-├── Assets/ # 游戏资源（图片、音效等） 
-├── Game/ # 游戏主程序源码 
-│ ├── src/ # 主要源码 
-│ ├── main.cpp # main程序
-│ └── CMakeLists.txt # 次级 CMake 配置 
-├── CMakeLists.txt # 顶层 CMake 配置 
-└── README.md # 项目说明
+RGS/
+├── 3rdlib/           # 第三方库（如 ImGui、stb_image 等）
+├── assets/           # 资源文件（图片、模型等）
+├── src/              # 核心源码
+│   ├── RGS/          # 渲染器核心模块
+│   ├── ImGui/        # ImGui 封装
+│   └── stb/          # stb_image 封装
+├── main.cpp          # 程序入口
+├── CMakeLists.txt    # 构建配置
+└── README.md         # 项目说明
 ```
+
 ---
 
 ## 构建与运行
@@ -26,52 +39,70 @@ GhostEscape-Xiaojiang/
 ### 依赖环境
 
 - CMake ≥ 3.10
-- C++17 编译器
-- SDL3、GLM（已包含在 3rdlib 目录）
+- C++17 编译器（推荐 MSVC 或 MinGW）
+- Windows 平台（默认 Win32 窗口实现）
+- 依赖库已包含在 3rdlib 目录（无需额外下载）
 
 ### 构建步骤
 
 1. **克隆项目**
-```sh
-git clone <仓库地址>
-cd GhostEscape-Xiaojiang
-```
-2. 创建构建目录并生成工程文件
-```sh
-mkdir build
-cd build
-cmake ..
-```
-3. 编译
-```sh
-cmake --build .
-```
-4. 运行游戏
-    可执行文件和依赖的 DLL、资源会自动复制到输出目录，直接运行即可。
+    ```sh
+    git clone https://github.com/Xiao233jiang/RGS.git
+    cd RGS
+    ```
+2. **创建构建目录并生成工程文件**
+    ```sh
+    mkdir build
+    cd build
+    cmake ..
+    ```
+3. **编译**
+    ```sh
+    cmake --build .
+    ```
+4. **运行程序**
+    可执行文件和依赖资源会自动复制到输出目录，直接运行即可。
 
 ---
 
-## CMake 配置说明
-### 顶层 CMakeLists.txt
-* 设置 C++17 标准
-* 支持多平台（Windows、Linux、Android、Darwin、Emscripten）
-* 添加 Game 子目录
+## 代码结构与模块说明
 
-### Game/CMakeLists.txt
-* 配置头文件和库文件路径
-* 指定所有源码文件
-* 链接 SDL3、GLM 及相关依赖
-* 自动复制 DLL 和资源文件到输出目录
+- **src/RGS/**  
+  - `Base.h`：基础宏与断言
+  - `Maths.h/cpp`：数学库（向量、矩阵、变换等）
+  - `Framebuffer.h/cpp`：帧缓冲实现
+  - `Renderer.h/cpp`：渲染管线与三角形光栅化
+  - `Texture.h/cpp`：纹理采样
+  - `Window.h/cpp`、`WindowsWindow.h/cpp`：窗口与输入管理
+  - `Shaders/`：着色器基类与 Blinn-Phong 实现
+
+- **src/ImGui/**  
+  ImGui 封装与调试窗口
+
+- **main.cpp**  
+  程序入口，初始化 Application 并运行主循环
 
 ---
 
 ## 主要功能模块
-* 核心系统：游戏主循环、场景管理、对象管理
-* 角色与敌人：玩家、敌人、武器、技能等
-* UI 系统：状态栏、技能栏、文本标签、按钮等
-* 特效与动画：精灵动画、特效、碰撞检测等
+
+- **核心系统**：窗口管理、输入处理、主循环
+- **渲染管线**：顶点处理、裁剪、投影、光栅化、深度测试、片元处理
+- **光照与材质**：Blinn-Phong 光照、纹理映射
+- **调试与 UI**：ImGui 实时调试界面
+
+---
+
+## 扩展与学习建议
+
+- 支持更多模型格式（如 OBJ 加载）
+- 增加更多光照模型或后处理效果
+- 移植到其他平台（如 Linux、Mac，需实现对应 Window 类）
+- 深入理解每个渲染阶段的实现细节
 
 ---
 
 ## 致谢
-感谢 ZiyuGameDev 的教程与开源项目，为本项目提供了宝贵的学习资源！
+
+感谢 B站UP:"可以叫我0宝" 的教程与开源项目，为本项目提供了宝贵的学习资源！
+参考项目：https://github.com/0bao/rgs.git
